@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
-const { generateMockOtp } = require('../../../utils/otpUtil');
+const { generateOtp, sendOtp } = require('../../../utils/otpUtil');
 
 /**
  * Generate JWT with full user context for multi-tenant RBAC
@@ -98,11 +98,17 @@ const sendOtp = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Account is deactivated. Contact your society admin.', data: null });
     }
 
-    // Generate OTP and set 5-minute expiry
-    const otp = generateMockOtp();
+    // Generate random OTP and set 5-minute expiry
+    const otp = generateOtp();
     user.otp = otp;
     user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     await user.save({ validateModifiedOnly: true });
+
+    // Send OTP (currently logs to backend console, replace with SMS API later)
+    const sent = await sendOtp(phone, otp);
+    if (!sent) {
+      return res.status(500).json({ success: false, message: 'Failed to send OTP. Please try again.', data: null });
+    }
 
     return res.status(200).json({
       success: true,
