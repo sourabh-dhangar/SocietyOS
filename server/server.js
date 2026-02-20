@@ -12,7 +12,15 @@ connectDB().then(() => seedSuperAdmin());
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',                          // Vite dev server
+    'http://localhost:5005',                           // Local Docker
+    'http://societyos.nakshatratechnologies.in',       // Production HTTP
+    'https://societyos.nakshatratechnologies.in',      // Production HTTPS
+  ],
+  credentials: true,
+}));
 
 // ─── Import Routes ──────────────────────────────────────────────
 const authRoutes = require("./src/modules/core/routes/authRoutes");

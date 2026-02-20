@@ -21,30 +21,34 @@ jobs:
             echo "Starting Deployment Process..."
 
             # Navigate to directory or clone if it doesn't exist
-            if [ -d "~/SocietyOS" ]; then
+            if [ -d "/var/www/SocietyOS" ]; then
               echo "Repository exists. Pulling latest changes..."
-              cd ~/SocietyOS
-              # Discard any local tracking changes that might conflict
+              cd /var/www/SocietyOS
               git reset --hard HEAD
               git pull origin main
             else
               echo "Repository does not exist. Cloning..."
-              git clone https://github.com/sourabh-dhangar/SocietyOS.git ~/SocietyOS
-              cd ~/SocietyOS
+              git clone https://github.com/sourabh-dhangar/SocietyOS.git /var/www/SocietyOS
+              cd /var/www/SocietyOS
             fi
 
             echo "Setting up environment variables..."
-            # Create .env file for docker-compose based on GitHub Secrets
-            echo "MONGO_URI=${{ secrets.MONGO_URI }}" > .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> .env
-            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
-            echo "ADMIN_PHONE=${{ secrets.ADMIN_PHONE }}" >> .env
+            cat > .env << 'EOF'
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            SUPER_ADMIN_EMAIL=${{ secrets.SUPER_ADMIN_EMAIL }}
+            SUPER_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD }}
+            SUPER_ADMIN_PHONE=${{ secrets.SUPER_ADMIN_PHONE }}
+            PORT=5005
+            NODE_ENV=production
+            EOF
+            # Remove leading whitespace from heredoc
+            sed -i 's/^[[:space:]]*//' .env
 
             echo "Rebuilding Docker containers..."
-            # Stop existing containers, rebuild images, and start
-            docker compose down
-            docker compose up -d --build
+            cd /var/www/SocietyOS
+            docker-compose down
+            docker-compose up -d --build
 
             echo "Cleaning up dangling images to save space..."
             docker image prune -f
