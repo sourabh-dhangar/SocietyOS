@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./server
+    container_name: societyos-backend
+    restart: always
+    environment:
+      - PORT=5005
+      - NODE_ENV=production
+      # Passing environment variables from the host's .env file
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_PHONE=${ADMIN_PHONE}
+    networks:
+      - societyos-network
+
+  frontend:
+    build: ./frontend
+    container_name: societyos-frontend
+    restart: always
+    ports:
+      # Maps the host's port 5005 to the Nginx internal port 80
+      - "5005:80"
+    depends_on:
+      - backend
+    networks:
+      - societyos-network
+
+networks:
+  societyos-network:
+    driver: bridge
