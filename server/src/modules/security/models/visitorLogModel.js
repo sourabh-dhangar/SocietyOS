@@ -57,11 +57,27 @@ const visitorLogSchema = new mongoose.Schema(
       default: null,
     },
 
-    // The guard who created this entry
+    // The user who created this entry (Guard or Resident)
     loggedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Logged by user is required'],
+    },
+
+    // QR/OTP Pre-approval fields
+    isPreApproved: {
+      type: Boolean,
+      default: false,
+    },
+    
+    passCode: {
+      type: String, // 6-digit OTP or QR data
+      default: null,
+    },
+    
+    expectedEntryDate: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Spinner, Alert, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Form, Spinner, Modal, ListGroup, Alert } from 'react-bootstrap';
 import api from '../../services/api';
 import VisitorEntryModal from '../../components/security/VisitorEntryModal';
 
@@ -10,6 +10,11 @@ const GateDashboard = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [showEntryModal, setShowEntryModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  
+  const [verifying, setVerifying] = useState(false);
+  const [passCodeInput, setPassCodeInput] = useState('');
+  
   const [checkingOut, setCheckingOut] = useState(null); // tracks which visitor is being checked out
 
   const fetchData = async () => {
@@ -31,6 +36,28 @@ const GateDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleVerifyPasscode = async (e) => {
+    e.preventDefault();
+    if (!passCodeInput) return;
+    
+    setVerifying(true);
+    setError('');
+    try {
+      const { data } = await api.post('/security/visitors/verify-passcode', { passCode: passCodeInput });
+      if (data.success) {
+        setSuccessMsg(data.message);
+        setShowVerifyModal(false);
+        setPassCodeInput('');
+        fetchData();
+        setTimeout(() => setSuccessMsg(''), 5000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid or expired PassCode.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleCheckOut = async (visitorId) => {
     setCheckingOut(visitorId);
@@ -89,25 +116,35 @@ const GateDashboard = () => {
 
       {/* Action Buttons — Large & Touch-Friendly */}
       <Row className="g-3 mb-4">
-        <Col xs={6}>
+        <Col xs={4}>
           <Button
             size="lg"
             className="w-100 py-3 fw-bold rounded-4 shadow-sm"
-            style={{ backgroundColor: '#198754', border: 'none', fontSize: '16px' }}
+            style={{ backgroundColor: '#198754', border: 'none', fontSize: '15px' }}
             onClick={() => setShowEntryModal(true)}
           >
             🚪 New Visitor
           </Button>
         </Col>
-        <Col xs={6}>
+        <Col xs={4}>
+          <Button
+            size="lg"
+            className="w-100 py-3 fw-bold rounded-4 shadow-sm"
+            style={{ backgroundColor: '#0d6efd', border: 'none', fontSize: '15px' }}
+            onClick={() => { setShowVerifyModal(true); setPassCodeInput(''); setError(''); }}
+          >
+            📱 Verify Code
+          </Button>
+        </Col>
+        <Col xs={4}>
           <Button
             size="lg"
             variant="outline-dark"
             className="w-100 py-3 fw-bold rounded-4 shadow-sm"
-            style={{ fontSize: '16px' }}
-            disabled
+            style={{ fontSize: '15px' }}
+            onClick={() => window.location.href = '/guard/staff'}
           >
-            👷 Staff Movement
+            👷 Staff
           </Button>
         </Col>
       </Row>
@@ -179,6 +216,41 @@ const GateDashboard = () => {
         refreshVisitors={fetchData}
         flats={flats}
       />
+
+      {/* Verify Passcode Modal */}
+      <Modal show={showVerifyModal} onHide={() => setShowVerifyModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Verify Visitor Code</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <p className="text-muted mb-4">Enter the 6-digit code provided by the resident to instantly check-in the visitor.</p>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <form onSubmit={handleVerifyPasscode}>
+            <div className="mb-4">
+              <input 
+                type="text" 
+                className="form-control form-control-lg text-center fw-bold" 
+                style={{ fontSize: '32px', letterSpacing: '8px' }}
+                placeholder="000000"
+                maxLength={6}
+                value={passCodeInput}
+                onChange={(e) => setPassCodeInput(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+              />
+            </div>
+            <Button 
+              type="submit"
+              size="lg" 
+              className="w-100 fw-bold rounded-pill"
+              style={{ backgroundColor: '#0d6efd', border: 'none' }}
+              disabled={verifying || passCodeInput.length !== 6}
+            >
+              {verifying ? <Spinner size="sm"/> : 'Verify & Check-In'}
+            </Button>
+          </form>
+        </Modal.Body>
+      </Modal>
+
     </Container>
   );
 };

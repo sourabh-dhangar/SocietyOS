@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Navbar, Container, Dropdown, Badge } from 'react-bootstrap';
+import { Navbar, Dropdown, Badge } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 
@@ -50,9 +50,9 @@ const AdminLayout = () => {
         </Navbar>
 
         {/* Page Content */}
-        <Container fluid className="p-4 flex-grow-1 overflow-auto">
+        <div className="p-4 flex-grow-1 overflow-auto">
           <Outlet />
-        </Container>
+        </div>
       </div>
     </div>
   );

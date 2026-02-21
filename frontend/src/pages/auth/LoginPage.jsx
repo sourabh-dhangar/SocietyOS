@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Card, Nav, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
+import { Card, Nav, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -95,11 +95,18 @@ const LoginPage = () => {
   };
 
   return (
-    <Container
+    <div
       className="d-flex align-items-center justify-content-center"
-      style={{ minHeight: '100vh' }}
+      style={{
+        minHeight: '100vh',
+        width: '100vw',
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+      }}
     >
-      <Card style={{ width: '100%', maxWidth: '450px' }} className="shadow-lg border-0">
+      <Card style={{ width: '100%', maxWidth: '450px' }} className="shadow-lg border-0 rounded-4 mx-3">
         <Card.Body className="p-4">
           {/* Logo / Title */}
           <div className="text-center mb-4">
@@ -244,7 +251,7 @@ const LoginPage = () => {
           )}
         </Card.Body>
       </Card>
-    </Container>
+    </div>
   );
 };
 

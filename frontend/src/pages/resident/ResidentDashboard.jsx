@@ -104,7 +104,7 @@ const ResidentDashboard = () => {
           <Card
             className="border-0 shadow-sm rounded-4 h-100 text-center"
             role="button"
-            onClick={() => navigate('/notices')}
+            onClick={() => navigate('/operations/notices')}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
@@ -119,7 +119,7 @@ const ResidentDashboard = () => {
           <Card
             className="border-0 shadow-sm rounded-4 h-100 text-center"
             role="button"
-            onClick={() => navigate('/complaints')}
+            onClick={() => navigate('/operations/helpdesk')}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
@@ -134,7 +134,7 @@ const ResidentDashboard = () => {
           <Card
             className="border-0 shadow-sm rounded-4 h-100 text-center"
             role="button"
-            onClick={() => navigate('/visitors')}
+            onClick={() => navigate('/resident/visitors')}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}

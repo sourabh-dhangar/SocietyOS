@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
 import api from '../../services/api';
 import AddSocietyModal from '../../components/shared/AddSocietyModal';
 
 const SuperAdminDashboard = () => {
+  const navigate = useNavigate();
   const [societies, setSocieties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,6 +32,7 @@ const SuperAdminDashboard = () => {
   // Computed metrics
   const totalSocieties = societies.length;
   const activeSocieties = societies.filter((s) => s.isActive).length;
+  const inactiveSocieties = totalSocieties - activeSocieties;
   const planBreakdown = {
     basic: societies.filter((s) => s.subscriptionPlan === 'basic').length,
     premium: societies.filter((s) => s.subscriptionPlan === 'premium').length,
@@ -50,7 +53,7 @@ const SuperAdminDashboard = () => {
   }
 
   return (
-    <Container fluid className="p-4">
+    <Container fluid className="p-0">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -63,16 +66,17 @@ const SuperAdminDashboard = () => {
 
       {/* Metric Cards */}
       <Row className="mb-4 g-3">
-        <Col md={4}>
+        <Col md={3}>
           <Card className="border-0 shadow-sm h-100">
             <Card.Body className="text-center">
               <h6 className="text-muted">Total Societies</h6>
               <h2 className="fw-bold" style={{ color: '#6C63FF' }}>{totalSocieties}</h2>
               <small className="text-success">{activeSocieties} Active</small>
+              {inactiveSocieties > 0 && <small className="text-danger ms-2">{inactiveSocieties} Inactive</small>}
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Card className="border-0 shadow-sm h-100">
             <Card.Body className="text-center">
               <h6 className="text-muted">Plan Distribution</h6>
@@ -84,7 +88,7 @@ const SuperAdminDashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Card className="border-0 shadow-sm h-100">
             <Card.Body className="text-center">
               <h6 className="text-muted">Platform Status</h6>
@@ -94,12 +98,32 @@ const SuperAdminDashboard = () => {
             </Card.Body>
           </Card>
         </Col>
+        <Col md={3}>
+          <Card
+            className="border-0 shadow-sm h-100"
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+            onClick={() => navigate('/societies')}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <Card.Body className="text-center d-flex flex-column align-items-center justify-content-center">
+              <h6 className="text-muted">Quick Actions</h6>
+              <Button
+                size="sm"
+                className="mt-1"
+                style={{ backgroundColor: '#6C63FF', border: 'none' }}
+              >
+                🏢 Manage Societies →
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
 
-      {/* Society Table */}
+      {/* Recent Societies Table */}
       <Card className="border-0 shadow-sm">
         <Card.Header className="bg-white d-flex justify-content-between align-items-center py-3">
-          <h5 className="mb-0 fw-bold">🏢 Onboarded Societies</h5>
+          <h5 className="mb-0 fw-bold">🏢 Recently Onboarded</h5>
           <Button
             onClick={() => setShowModal(true)}
             style={{ backgroundColor: '#6C63FF', border: 'none' }}
@@ -114,36 +138,62 @@ const SuperAdminDashboard = () => {
               <p>Click "Add New Society" to get started.</p>
             </div>
           ) : (
-            <Table responsive hover className="mb-0">
+            <Table responsive hover className="mb-0 align-middle">
               <thead className="table-light">
                 <tr>
                   <th>#</th>
                   <th>Society Name</th>
                   <th>City</th>
-                  <th>Reg. Number</th>
+                  <th>Admin Email</th>
                   <th>Plan</th>
+                  <th>Features</th>
                   <th>Status</th>
                   <th>Created</th>
                 </tr>
               </thead>
               <tbody>
-                {societies.map((society, index) => (
+                {societies.slice(0, 5).map((society, index) => (
                   <tr key={society._id}>
                     <td>{index + 1}</td>
                     <td className="fw-semibold">{society.name}</td>
                     <td>{society.address?.city || '—'}</td>
-                    <td><code>{society.registrationNumber}</code></td>
+                    <td className="text-muted" style={{ fontSize: '13px' }}>{society.adminEmail || '—'}</td>
                     <td>{getPlanBadge(society.subscriptionPlan)}</td>
                     <td>
+                      <div className="d-flex flex-wrap gap-1" style={{ maxWidth: '140px' }}>
+                        {society.features?.hasFinance !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Finance</Badge>}
+                        {society.features?.hasSecurity !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Security</Badge>}
+                        {society.features?.hasOperations !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Operations</Badge>}
+                        {society.features?.hasFacilities !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Facilities</Badge>}
+                      </div>
+                    </td>
+                    <td>
                       <Badge bg={society.isActive ? 'success' : 'danger'}>
-                        {society.isActive ? 'Active' : 'Inactive'}
+                        {society.isActive ? '● Active' : '● Inactive'}
                       </Badge>
                     </td>
-                    <td>{new Date(society.createdAt).toLocaleDateString('en-IN')}</td>
+                    <td className="text-muted" style={{ fontSize: '13px' }}>
+                      {new Date(society.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </Table>
+          )}
+          {societies.length > 5 && (
+            <div className="text-center py-3 border-top">
+              <Button
+                variant="link"
+                style={{ color: '#6C63FF' }}
+                onClick={() => navigate('/societies')}
+              >
+                View all {societies.length} societies →
+              </Button>
+            </div>
           )}
         </Card.Body>
       </Card>

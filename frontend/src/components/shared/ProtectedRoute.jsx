@@ -4,7 +4,7 @@ import { Spinner } from 'react-bootstrap';
 
 /**
  * ProtectedRoute — restricts access by userType
- * @param {string} requiredRole - e.g. 'super_admin', 'society_admin'
+ * @param {string|string[]} requiredRole - single role or array of allowed roles
  * @param {ReactNode} children - wrapped page component
  */
 const ProtectedRoute = ({ requiredRole, children }) => {
@@ -22,13 +22,17 @@ const ProtectedRoute = ({ requiredRole, children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && user?.userType !== requiredRole) {
-    return (
-      <div className="text-center mt-5">
-        <h3 className="text-danger">🚫 Access Denied</h3>
-        <p className="text-muted">You don't have permission to view this page.</p>
-      </div>
-    );
+  // Support both single role string and array of roles
+  if (requiredRole) {
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (!allowedRoles.includes(user?.userType)) {
+      return (
+        <div className="text-center mt-5">
+          <h3 className="text-danger">🚫 Access Denied</h3>
+          <p className="text-muted">You don't have permission to view this page.</p>
+        </div>
+      );
+    }
   }
 
   return children;

@@ -1,18 +1,20 @@
-const bcrypt = require('bcryptjs');
 const User = require('../modules/core/models/userModel');
+const getDefaultPermissions = require('./permissionDefaults');
 
 /**
  * Seed Super Admin on server boot
- * Reads credentials from .env and creates the super admin if not found.
+ * Reads ALL credentials from .env — nothing hardcoded.
  */
 const seedSuperAdmin = async () => {
   try {
+    const firstName = process.env.SUPER_ADMIN_FIRST_NAME;
+    const lastName = process.env.SUPER_ADMIN_LAST_NAME;
     const email = process.env.SUPER_ADMIN_EMAIL;
     const password = process.env.SUPER_ADMIN_PASSWORD;
     const phone = process.env.SUPER_ADMIN_PHONE;
 
-    if (!email || !password) {
-      console.log('⚠️  SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in .env — skipping seed.');
+    if (!email || !password || !firstName || !lastName || !phone) {
+      console.log('⚠️  Missing SUPER_ADMIN env vars (FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, PHONE) — skipping seed.');
       return;
     }
 
@@ -23,24 +25,15 @@ const seedSuperAdmin = async () => {
       return;
     }
 
-    // Pass raw password — the userModel pre-save hook handles hashing
     const admin = new User({
-      firstName: 'Super',
-      lastName: 'Admin',
+      firstName,
+      lastName,
       email,
-      phone: phone || '0000000000',
+      phone,
       password,
       userType: 'super_admin',
       societyId: null,
-      permissions: {
-        finance: { view: true, edit: true },
-        security: { view: true, edit: true },
-        notices: { view: true, edit: true },
-        operations: { view: true, edit: true },
-        governance: { view: true, edit: true },
-        staffManagement: { view: true, edit: true },
-        admin_assets: { view: true, edit: true },
-      },
+      permissions: getDefaultPermissions('super_admin'),
       isActive: true,
     });
 

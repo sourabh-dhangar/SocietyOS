@@ -1,6 +1,8 @@
 const Inventory = require('../models/inventoryModel');
 const Document = require('../models/documentModel');
 const SecondarySale = require('../models/secondarySaleModel');
+const Amenity = require('../models/amenityModel');
+const AmenityBooking = require('../models/bookingModel');
 
 // ═══════════════════════════════════════════════════════════════
 //  INVENTORY MANAGEMENT
@@ -137,6 +139,36 @@ const getPublicDocuments = async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * @desc    Get all NOC requests for the society
+ * @route   GET /api/facilities/noc
+ * @access  Private (Auth — society members)
+ */
+const getNocRequests = async (req, res) => {
+  try {
+    const filter = { societyId: req.user.societyId };
+
+    // Residents only see their own requests
+    if (req.user.userType === 'resident') {
+      filter.ownerId = req.user.userId;
+    }
+
+    const nocs = await SecondarySale.find(filter)
+      .populate('flatId', 'wing flatNumber')
+      .populate('ownerId', 'firstName lastName phone')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: 'NOC requests fetched successfully',
+      data: nocs,
+    });
+  } catch (error) {
+    console.error('GetNocRequests Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error', data: null });
+  }
+};
+
+/**
  * @desc    Submit an NOC request for secondary sale/rent (Resident/Owner)
  * @route   POST /api/facilities/noc
  * @access  Private (Authenticated)
@@ -221,4 +253,203 @@ const updateNocStatus = async (req, res) => {
   }
 };
 
-module.exports = { updateInventory, getLowStockItems, uploadDocument, getPublicDocuments, requestNoc, updateNocStatus };
+// ═══════════════════════════════════════════════════════════════
+//  AMENITIES & BOOKINGS (Clubhouse, Tennis Court, etc.)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @desc    Add or Update an Amenity (Admin)
+ * @route   POST /api/facilities/amenities
+ * @access  Private — admin_assets.edit
+ */
+const saveAmenity = async (req, res) => {
+  try {
+    const { id, name, description, rules, openTime, closeTime, maxCapacity, isChargeable, ratePerHour, isActive } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'name is required', data: null });
+    }
+
+    let amenity;
+    if (id) {
+      amenity = await Amenity.findOneAndUpdate(
+        { _id: id, societyId: req.user.societyId },
+        { name, description, rules, openTime, closeTime, maxCapacity, isChargeable, ratePerHour, isActive },
+        { new: true }
+      );
+      if (!amenity) return res.status(404).json({ success: false, message: 'Amenity not found', data: null });
+    } else {
+      amenity = await Amenity.create({
+        societyId: req.user.societyId,
+        name, description, rules, openTime, closeTime, maxCapacity, isChargeable, ratePerHour, isActive
+      });
+    }
+
+    return res.status(id ? 200 : 201).json({
+      success: true,
+      message: `Amenity ${id ? 'updated' : 'created'} successfully`,
+      data: amenity,
+    });
+  } catch (error) {
+    console.error('SaveAmenity Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error', data: null });
+  }
+};
+
+/**
+ * @desc    Get all amenities for the society
+ * @route   GET /api/facilities/amenities
+ * @access  Private (All authenticated members)
+ */
+const getAmenities = async (req, res) => {
+  try {
+    const amenities = await Amenity.find({ societyId: req.user.societyId }).sort({ name: 1 });
+    return res.status(200).json({ success: true, data: amenities });
+  } catch (error) {
+    console.error('GetAmenities Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error', data: null });
+  }
+};
+
+/**
+ * @desc    Book an amenity (Resident)
+ * @route   POST /api/facilities/bookings
+ * @access  Private (Resident)
+ */
+const bookAmenity = async (req, res) => {
+  try {
+    const { amenityId, bookingDate, startTime, endTime } = req.body;
+
+    if (!amenityId || !bookingDate || !startTime || !endTime) {
+      return res.status(400).json({ success: false, message: 'All booking fields are required', data: null });
+    }
+
+    const amenity = await Amenity.findOne({ _id: amenityId, societyId: req.user.societyId });
+    if (!amenity) {
+      return res.status(404).json({ success: false, message: 'Amenity not found', data: null });
+    }
+
+    if (!amenity.isActive) {
+      return res.status(400).json({ success: false, message: 'This amenity is currently inactive', data: null });
+    }
+
+    // Checking for slot overlap (simple logic)
+    const existingBooking = await AmenityBooking.findOne({
+      amenityId,
+      bookingDate: new Date(bookingDate),
+      status: { $in: ['pending', 'approved'] },
+      $or: [
+        { startTime: { $lt: endTime, $gte: startTime } },
+        { endTime: { $gt: startTime, $lte: endTime } },
+        { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
+      ]
+    });
+
+    // If maxCapacity > 0, we could count overlapping bookings, but for simplicity, if it's booked, we reject.
+    if (existingBooking && amenity.maxCapacity <= 1) {
+       return res.status(409).json({ success: false, message: 'This time slot is already booked', data: null });
+    }
+
+    // Calculate hours to calculate totalCost (simplified)
+    const formatTime = (t) => { const [h, m] = t.split(':'); return parseInt(h) + (parseInt(m)/60); };
+    let hours = formatTime(endTime) - formatTime(startTime);
+    if(hours < 0) hours = 0; // Invalid time range mitigation
+
+    const totalCost = amenity.isChargeable ? hours * amenity.ratePerHour : 0;
+
+    const booking = await AmenityBooking.create({
+      societyId: req.user.societyId,
+      amenityId,
+      residentId: req.user.userId,
+      flatId: req.user.flatId,
+      bookingDate: new Date(bookingDate),
+      startTime,
+      endTime,
+      totalCost,
+      status: 'pending', // Admins must approve
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Booking request submitted. Awaiting admin approval.',
+      data: booking,
+    });
+  } catch (error) {
+    console.error('BookAmenity Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error', data: null });
+  }
+};
+
+/**
+ * @desc    Get amenity bookings (Admin sees all, Resident sees their own)
+ * @route   GET /api/facilities/bookings
+ * @access  Private
+ */
+const getBookings = async (req, res) => {
+  try {
+    const filter = { societyId: req.user.societyId };
+    
+    // If resident, enforce only their own bookings
+    if (req.user.userType === 'resident') {
+      filter.residentId = req.user.userId;
+    }
+
+    const bookings = await AmenityBooking.find(filter)
+      .populate('amenityId', 'name')
+      .populate('flatId', 'wing flatNumber')
+      .populate('residentId', 'firstName lastName')
+      .sort({ bookingDate: -1, startTime: -1 });
+
+    return res.status(200).json({ success: true, data: bookings });
+  } catch (error) {
+    console.error('GetBookings Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error', data: null });
+  }
+};
+
+/**
+ * @desc    Approve/Reject a booking (Admin)
+ * @route   PUT /api/facilities/bookings/:id
+ * @access  Private — admin_assets.edit
+ */
+const updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, paymentStatus, adminNotes } = req.body;
+
+    const booking = await AmenityBooking.findOne({ _id: id, societyId: req.user.societyId });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found', data: null });
+    }
+
+    if (status) booking.status = status;
+    if (paymentStatus) booking.paymentStatus = paymentStatus;
+    if (adminNotes !== undefined) booking.adminNotes = adminNotes;
+
+    await booking.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Booking ${status || 'updated'} successfully`,
+      data: booking,
+    });
+  } catch (error) {
+    console.error('UpdateBookingStatus Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error', data: null });
+  }
+};
+
+module.exports = { 
+  updateInventory, 
+  getLowStockItems, 
+  uploadDocument, 
+  getPublicDocuments, 
+  getNocRequests, 
+  requestNoc, 
+  updateNocStatus,
+  saveAmenity,
+  getAmenities,
+  bookAmenity,
+  getBookings,
+  updateBookingStatus
+};

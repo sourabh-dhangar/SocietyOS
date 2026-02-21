@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Table, Button, Badge, Spinner, Alert, Form, InputGroup, Card } from 'react-bootstrap';
 import api from '../../services/api';
 import AddSocietyModal from '../../components/shared/AddSocietyModal';
+import EditSocietyModal from '../../components/shared/EditSocietyModal';
 
 const ManageSocieties = () => {
   const [societies, setSocieties] = useState([]);
@@ -9,7 +10,10 @@ const ManageSocieties = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedSociety, setSelectedSociety] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
 
   const fetchSocieties = async () => {
     try {
@@ -30,7 +34,7 @@ const ManageSocieties = () => {
     fetchSocieties();
   }, []);
 
-  // Filter by name or city
+  // Filter by name, city, or reg number
   useEffect(() => {
     if (!search.trim()) {
       setFiltered(societies);
@@ -42,10 +46,30 @@ const ManageSocieties = () => {
         (s) =>
           s.name?.toLowerCase().includes(q) ||
           s.address?.city?.toLowerCase().includes(q) ||
-          s.registrationNumber?.toLowerCase().includes(q)
+          s.registrationNumber?.toLowerCase().includes(q) ||
+          s.adminEmail?.toLowerCase().includes(q)
       )
     );
   }, [search, societies]);
+
+  const handleEdit = (society) => {
+    setSelectedSociety(society);
+    setShowEditModal(true);
+  };
+
+  const handleToggleStatus = async (societyId) => {
+    try {
+      setTogglingId(societyId);
+      const { data } = await api.patch(`/core/society/${societyId}/toggle-status`);
+      if (data.success) {
+        fetchSocieties();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to toggle status.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const getPlanBadge = (plan) => {
     const colors = { basic: 'secondary', premium: 'primary', enterprise: 'success' };
@@ -69,7 +93,7 @@ const ManageSocieties = () => {
           <p className="text-muted mb-0">{societies.length} societies onboarded</p>
         </div>
         <Button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowAddModal(true)}
           style={{ backgroundColor: '#6C63FF', border: 'none' }}
         >
           + Add New Society
@@ -84,7 +108,7 @@ const ManageSocieties = () => {
           <InputGroup>
             <InputGroup.Text className="bg-white border-end-0">🔍</InputGroup.Text>
             <Form.Control
-              placeholder="Search by name, city, or registration number..."
+              placeholder="Search by name, city, registration number, or admin email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border-start-0"
@@ -114,10 +138,12 @@ const ManageSocieties = () => {
                   <th>Society Name</th>
                   <th>City</th>
                   <th>Reg. Number</th>
+                  <th>Admin Email</th>
                   <th>Plan</th>
+                  <th>Features</th>
                   <th>Status</th>
                   <th>Created</th>
-                  <th style={{ width: '100px' }}>Actions</th>
+                  <th style={{ width: '200px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,7 +153,16 @@ const ManageSocieties = () => {
                     <td className="fw-semibold">{society.name}</td>
                     <td>{society.address?.city || '—'}</td>
                     <td><code className="text-muted">{society.registrationNumber}</code></td>
+                    <td className="text-muted" style={{ fontSize: '13px' }}>{society.adminEmail || '—'}</td>
                     <td>{getPlanBadge(society.subscriptionPlan)}</td>
+                    <td>
+                      <div className="d-flex flex-wrap gap-1" style={{ maxWidth: '150px' }}>
+                        {society.features?.hasFinance !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Finance</Badge>}
+                        {society.features?.hasSecurity !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Security</Badge>}
+                        {society.features?.hasOperations !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Operations</Badge>}
+                        {society.features?.hasFacilities !== false && <Badge bg="info" text="dark" className="bg-opacity-25 border border-info fw-normal">Facilities</Badge>}
+                      </div>
+                    </td>
                     <td>
                       <Badge
                         bg={society.isActive !== false ? 'success' : 'danger'}
@@ -144,9 +179,31 @@ const ManageSocieties = () => {
                       })}
                     </td>
                     <td>
-                      <Button variant="outline-primary" size="sm" className="rounded-pill px-3">
-                        ✏️ Edit
-                      </Button>
+                      <div className="d-flex gap-1">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="rounded-pill px-3"
+                          onClick={() => handleEdit(society)}
+                        >
+                          ✏️ Edit
+                        </Button>
+                        <Button
+                          variant={society.isActive !== false ? 'outline-danger' : 'outline-success'}
+                          size="sm"
+                          className="rounded-pill px-2"
+                          onClick={() => handleToggleStatus(society._id)}
+                          disabled={togglingId === society._id}
+                        >
+                          {togglingId === society._id ? (
+                            <Spinner animation="border" size="sm" />
+                          ) : society.isActive !== false ? (
+                            '🚫'
+                          ) : (
+                            '✅'
+                          )}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -156,11 +213,17 @@ const ManageSocieties = () => {
         </Card.Body>
       </Card>
 
-      {/* Add Society Modal */}
+      {/* Modals */}
       <AddSocietyModal
-        show={showModal}
-        handleClose={() => setShowModal(false)}
+        show={showAddModal}
+        handleClose={() => setShowAddModal(false)}
         refreshData={fetchSocieties}
+      />
+      <EditSocietyModal
+        show={showEditModal}
+        handleClose={() => { setShowEditModal(false); setSelectedSociety(null); }}
+        refreshData={fetchSocieties}
+        society={selectedSociety}
       />
     </Container>
   );

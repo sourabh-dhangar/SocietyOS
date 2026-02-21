@@ -58,7 +58,7 @@ const billSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['pending', 'paid', 'overdue'],
+      enum: ['pending', 'paid', 'overdue', 'pending_clearance'],
       default: 'pending',
     },
   },

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
-const { generateOtp, sendOtp } = require('../../../utils/otpUtil');
+const { generateOtp, sendOtp: deliverOtp } = require('../../../utils/otpUtil');
+const { logAudit } = require('../../../utils/auditLogger');
 
 /**
  * Generate JWT with full user context for multi-tenant RBAC
@@ -33,6 +34,7 @@ const adminLogin = async (req, res) => {
 
     // Find user with password field included
     const user = await User.findOne({ email }).select('+password');
+    let userFeatures = {};
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password', data: null });
@@ -54,6 +56,18 @@ const adminLogin = async (req, res) => {
     }
 
     const token = generateToken(user);
+    
+    // Fetch Society to get features
+    const Society = require('../models/societyModel');
+    if (user.societyId) {
+      const society = await Society.findById(user.societyId);
+      if (society && society.features) {
+        userFeatures = society.features;
+      }
+    }
+
+    req.user = user; // Temporarily set for audit logger
+    await logAudit(req, 'Core', 'LOGIN', `Admin logged in (${user.email})`);
 
     return res.status(200).json({
       success: true,
@@ -66,6 +80,7 @@ const adminLogin = async (req, res) => {
         userType: user.userType,
         societyId: user.societyId,
         permissions: user.permissions,
+        features: userFeatures,
       },
       token,
     });
@@ -105,7 +120,7 @@ const sendOtp = async (req, res) => {
     await user.save({ validateModifiedOnly: true });
 
     // Send OTP (currently logs to backend console, replace with SMS API later)
-    const sent = await sendOtp(phone, otp);
+    const sent = await deliverOtp(phone, otp);
     if (!sent) {
       return res.status(500).json({ success: false, message: 'Failed to send OTP. Please try again.', data: null });
     }
@@ -135,6 +150,7 @@ const verifyOtp = async (req, res) => {
     }
 
     const user = await User.findOne({ phone });
+    let userFeatures = {};
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'No account found with this phone number', data: null });
@@ -156,6 +172,18 @@ const verifyOtp = async (req, res) => {
     await user.save({ validateModifiedOnly: true });
 
     const token = generateToken(user);
+    
+    // Fetch Society to get features
+    const Society = require('../models/societyModel');
+    if (user.societyId) {
+      const society = await Society.findById(user.societyId);
+      if (society && society.features) {
+        userFeatures = society.features;
+      }
+    }
+
+    req.user = user; // Temporarily set for audit logger
+    await logAudit(req, 'Core', 'LOGIN', `User logged in via OTP (${user.phone})`);
 
     return res.status(200).json({
       success: true,
@@ -168,6 +196,7 @@ const verifyOtp = async (req, res) => {
         userType: user.userType,
         societyId: user.societyId,
         permissions: user.permissions,
+        features: userFeatures,
       },
       token,
     });

@@ -41,14 +41,10 @@ const societySchema = new mongoose.Schema(
     },
     // Feature flags — dynamically enable/disable modules per society
     features: {
-      hasFinance: { type: Boolean, default: true },
-      hasSecurity: { type: Boolean, default: true },
-      hasOperations: { type: Boolean, default: true },
-      hasGovernance: { type: Boolean, default: true },
-      hasWaterLogs: { type: Boolean, default: true },
-      hasStpLogs: { type: Boolean, default: true },
-      hasStaffManagement: { type: Boolean, default: true },
-      hasAmenityBooking: { type: Boolean, default: true },
+      finance: { type: Boolean, default: true },
+      security: { type: Boolean, default: true },
+      operations: { type: Boolean, default: true },
+      facilities: { type: Boolean, default: true },
     },
   },
   { timestamps: true }

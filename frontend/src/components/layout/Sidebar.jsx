@@ -12,29 +12,62 @@ const Sidebar = () => {
           { to: '/dashboard', label: '📊 Dashboard' },
           { to: '/societies', label: '🏢 Manage Societies' },
         ];
-      case 'society_admin':
-        return [
+      case 'society_admin': {
+        const adminLinks = [
           { to: '/dashboard', label: '📊 Society Overview' },
           { to: '/society/flats', label: '🏠 Manage Flats' },
           { to: '/society/residents', label: '👥 Residents' },
-          { to: '/society/bills', label: '💰 Billing' },
-          { to: '/guard/dashboard', label: '🚪 Gate Logs' },
-          { to: '/operations/notices', label: '📢 Notices' },
-          { to: '/operations/helpdesk', label: '🔧 Helpdesk' },
-          { to: '/facilities/inventory', label: '📦 Inventory' },
-          { to: '/facilities/documents', label: '📄 Documents' },
         ];
-      case 'resident':
-        return [
+        if (user?.features?.finance !== false) {
+          adminLinks.push({ to: '/society/bills', label: '💳 Society Finance' });
+          adminLinks.push({ to: '/finance/analytics', label: '📈 Analytics' });
+          adminLinks.push({ to: '/society/billing-settings', label: '⚙️ Billing Config' });
+        }
+        if (user?.features?.security !== false) {
+          adminLinks.push({ to: '/guard/dashboard', label: '🚪 Gate Logs' });
+        }
+        if (user?.features?.operations !== false) {
+          adminLinks.push({ to: '/operations/notices', label: '📢 Notices' });
+          adminLinks.push({ to: '/operations/helpdesk', label: '🔧 Helpdesk' });
+          adminLinks.push({ to: '/operations/emergency-contacts', label: '🚨 Emergency' });
+          adminLinks.push({ to: '/operations/asset-logs', label: '🏗️ Facility Logs' });
+          adminLinks.push({ to: '/operations/audit-logs', label: '📋 Audit Logs' });
+        }
+        if (user?.features?.facilities !== false) {
+          adminLinks.push({ to: '/facilities/inventory', label: '📦 Inventory' });
+          adminLinks.push({ to: '/facilities/documents', label: '📁 Documents' });
+          adminLinks.push({ to: '/facilities/noc', label: '📜 NOC Requests' });
+          adminLinks.push({ to: '/facilities/amenities', label: '🏊 Amenities' });
+          adminLinks.push({ to: '/facilities/gallery', label: '📸 Gallery' });
+        }
+        return adminLinks;
+      }
+      case 'resident': {
+        const resLinks = [
           { to: '/dashboard', label: '🏠 My Home' },
-          { to: '/resident/bills', label: '💳 Pay Dues' },
-          { to: '/operations/notices', label: '📢 Notices' },
-          { to: '/operations/helpdesk', label: '🔧 Complaints' },
         ];
+        if (user?.features?.finance !== false) {
+          resLinks.push({ to: '/resident/bills', label: '💳 Pay Dues' });
+        }
+        if (user?.features?.security !== false) {
+          resLinks.push({ to: '/resident/visitors', label: '🤝 My Visitors' });
+        }
+        if (user?.features?.operations !== false) {
+          resLinks.push({ to: '/operations/notices', label: '📢 Notices' });
+          resLinks.push({ to: '/operations/helpdesk', label: '🔧 Complaints' });
+          resLinks.push({ to: '/operations/emergency-contacts', label: '🚨 Emergency' });
+        }
+        if (user?.features?.facilities !== false) {
+          resLinks.push({ to: '/facilities/parking', label: '🅿️ Parking' });
+          resLinks.push({ to: '/facilities/amenities', label: '🏊 Amenities' });
+        }
+        return resLinks;
+      }
       case 'security_guard':
         return [
           { to: '/dashboard', label: '📊 Dashboard' },
           { to: '/guard/dashboard', label: '🚪 Gate Logs' },
+          { to: '/operations/emergency-contacts', label: '🚨 Emergency' },
         ];
       default:
         return [

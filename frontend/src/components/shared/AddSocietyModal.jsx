@@ -11,6 +11,12 @@ const AddSocietyModal = ({ show, handleClose, refreshData }) => {
     contactEmail: '',
     contactPhone: '',
     subscriptionPlan: 'basic',
+    // Admin credentials
+    adminFirstName: '',
+    adminLastName: '',
+    adminEmail: '',
+    adminPassword: '',
+    adminPhone: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +41,12 @@ const AddSocietyModal = ({ show, handleClose, refreshData }) => {
         contactEmail: formData.contactEmail,
         contactPhone: formData.contactPhone,
         subscriptionPlan: formData.subscriptionPlan,
+        // Admin credentials
+        adminFirstName: formData.adminFirstName,
+        adminLastName: formData.adminLastName,
+        adminEmail: formData.adminEmail,
+        adminPassword: formData.adminPassword,
+        adminPhone: formData.adminPhone,
       };
 
       const { data } = await api.post('/core/society', payload);
@@ -48,6 +60,11 @@ const AddSocietyModal = ({ show, handleClose, refreshData }) => {
           contactEmail: '',
           contactPhone: '',
           subscriptionPlan: 'basic',
+          adminFirstName: '',
+          adminLastName: '',
+          adminEmail: '',
+          adminPassword: '',
+          adminPhone: '',
         });
         refreshData();
         handleClose();
@@ -68,6 +85,11 @@ const AddSocietyModal = ({ show, handleClose, refreshData }) => {
         {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
         <Form onSubmit={handleSubmit}>
+          {/* ─── Society Details ─────────────────────────────── */}
+          <h6 className="fw-bold text-muted mb-3" style={{ borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+            📋 Society Details
+          </h6>
+
           <Row>
             <Col md={6}>
               <Form.Group className="mb-3">
@@ -150,7 +172,7 @@ const AddSocietyModal = ({ show, handleClose, refreshData }) => {
             </Col>
           </Row>
 
-          <Form.Group className="mb-3">
+          <Form.Group className="mb-4">
             <Form.Label>Subscription Plan</Form.Label>
             <Form.Select name="subscriptionPlan" value={formData.subscriptionPlan} onChange={handleChange}>
               <option value="basic">Basic</option>
@@ -158,6 +180,87 @@ const AddSocietyModal = ({ show, handleClose, refreshData }) => {
               <option value="enterprise">Enterprise</option>
             </Form.Select>
           </Form.Group>
+
+          {/* ─── Society Admin Credentials ────────────────────── */}
+          <h6 className="fw-bold text-muted mb-3" style={{ borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+            🔑 Society Admin Credentials
+          </h6>
+          <p className="text-muted small mb-3">
+            This person will be the admin of this society. They will login using these credentials.
+          </p>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Admin First Name</Form.Label>
+                <Form.Control
+                  name="adminFirstName"
+                  placeholder="e.g., Rajesh"
+                  value={formData.adminFirstName}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Admin Last Name</Form.Label>
+                <Form.Control
+                  name="adminLastName"
+                  placeholder="e.g., Sharma"
+                  value={formData.adminLastName}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Admin Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="adminEmail"
+                  placeholder="admin@society.com"
+                  value={formData.adminEmail}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Admin Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  name="adminPassword"
+                  placeholder="Min 6 characters"
+                  value={formData.adminPassword}
+                  onChange={handleChange}
+                  minLength={6}
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Admin Phone</Form.Label>
+                <Form.Control
+                  name="adminPhone"
+                  placeholder="9876543210"
+                  value={formData.adminPhone}
+                  onChange={handleChange}
+                  maxLength={10}
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
 
           <div className="d-flex justify-content-end gap-2">
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>

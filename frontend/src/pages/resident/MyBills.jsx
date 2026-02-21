@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Table, Button, Badge, Spinner, Alert, Card, Modal } from 'react-bootstrap';
 import api from '../../services/api';
+import { generateBillPDF } from '../../utils/pdfGenerator';
 
 const MyBills = () => {
   const [bills, setBills] = useState([]);
@@ -140,18 +141,28 @@ const MyBills = () => {
                     </td>
                     <td>{getStatusBadge(bill.status)}</td>
                     <td>
-                      {(bill.status === 'pending' || bill.status === 'overdue') ? (
-                        <Button
-                          size="sm"
-                          variant="success"
-                          className="rounded-pill px-3"
-                          onClick={() => openPayModal(bill)}
+                      <div className="d-flex align-items-center gap-2">
+                        {(bill.status === 'pending' || bill.status === 'overdue') ? (
+                          <Button
+                            size="sm"
+                            variant="success"
+                            className="rounded-pill px-3"
+                            onClick={() => openPayModal(bill)}
+                          >
+                            💳 Pay
+                          </Button>
+                        ) : (
+                          <span className="text-muted me-2" style={{ fontSize: '13px' }}>—</span>
+                        )}
+                        <Button 
+                          variant="outline-secondary" 
+                          size="sm" 
+                          title="Download PDF"
+                          onClick={() => generateBillPDF(bill)}
                         >
-                          💳 Pay Now
+                          📄
                         </Button>
-                      ) : (
-                        <span className="text-muted" style={{ fontSize: '13px' }}>—</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}

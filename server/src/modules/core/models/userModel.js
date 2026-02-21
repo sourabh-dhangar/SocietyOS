@@ -27,9 +27,12 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: 6,
       select: false, // Exclude from queries by default
+      // Password required only for admin types; residents/staff use OTP
+      required: function () {
+        return ['super_admin', 'society_admin'].includes(this.userType);
+      },
     },
 
     // Multi-tenant link — required for everyone except super_admin
